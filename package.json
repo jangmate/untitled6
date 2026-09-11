@@ -4,20 +4,32 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -k \"npm:dev:api\" \"npm:dev:web\"",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:api": "node --watch server/index.mjs",
+    "dev:web": "vite",
+    "start": "node server/index.mjs",
+    "browser:install": "playwright install chromium",
+    "test": "node --test tests/*.test.mjs"
   },
   "devDependencies": {
+    "@types/node": "^22.20.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
     "typescript": "~6.0.2",
     "vite": "^8.2.2"
   },
   "dependencies": {
+    "axe-core": "^4.13.0",
+    "express": "^5.2.1",
+    "ipaddr.js": "^2.5.0",
     "lucide-react": "^1.43.0",
+    "playwright": "^1.63.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "robots-parser": "^3.0.1"
   }
 }

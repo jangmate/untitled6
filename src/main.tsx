@@ -1,30 +1,216 @@
-import { StrictMode, useEffect, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
-import { createRoot } from 'react-dom/client';
-import { ArrowUpRight, BarChart3, Check, ChevronDown, CircleCheck, Eye, Globe2, Image, Link, LoaderCircle, MousePointer2, MoveRight, ScanLine, ShieldCheck, Sparkles, Type, X, Zap } from 'lucide-react';
-import { criteria, demoResults, issues, pages } from './data';
+import type {FormEvent} from 'react';
+import {StrictMode, useEffect, useRef, useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {
+    ArrowUpRight,
+    BarChart3,
+    CircleCheck,
+    Eye,
+    Globe2,
+    Image,
+    Link,
+    LoaderCircle,
+    MoveRight,
+    ScanLine,
+    ShieldCheck,
+    Type,
+    X,
+    Zap
+} from 'lucide-react';
+import type {Progress, Report} from './api';
+import {sampleReport, scanSite} from './api';
+import ReportView from './ReportView';
 import './app.css';
+import './scan.css';
+import './mobile.css';
 
-function Decorations(){return <div className="decorations" aria-hidden="true">{[Image,Type,Eye,ShieldCheck].map((Icon,i)=><div className={`floating-icon float-${i}`} key={i}><Icon/></div>)}{Array.from({length:7},(_,i)=><span className={`star star-${i}`} key={i}>{i%3===0?'✦':'+'}</span>)}</div>}
-function SectionTitle({title,subtitle}:{title:string;subtitle:string}){return <div className="section-title"><h2><span><Check size={14}/></span>{title}</h2><p>{subtitle}</p></div>}
-function App(){
- const [screen,setScreen]=useState(location.hash==='#results'?'results':'home');
- const [url,setUrl]=useState(''); const [error,setError]=useState(''); const [progress,setProgress]=useState(0); const [filter,setFilter]=useState('all'); const [expanded,setExpanded]=useState(false); const [detail,setDetail]=useState<number|null>(null); const dialog=useRef<HTMLDialogElement>(null); const heading=useRef<HTMLHeadingElement>(null);
- useEffect(()=>{const onHash=()=>setScreen(location.hash==='#results'?'results':'home');window.addEventListener('hashchange',onHash);return()=>window.removeEventListener('hashchange',onHash)},[]);
- useEffect(()=>{if(screen!=='scanning')return;const timer=setInterval(()=>setProgress(p=>Math.min(100,p+2)),65);return()=>clearInterval(timer)},[screen]);
- useEffect(()=>{if(screen==='scanning'&&progress===100){const timer=setTimeout(()=>{location.hash='results';setScreen('results');window.scrollTo(0,0)},350);return()=>clearTimeout(timer)}},[progress,screen]);
- useEffect(()=>{if(screen==='results')heading.current?.focus({preventScroll:true})},[screen]);
- function start(e?:FormEvent,demo=false){e?.preventDefault();if(!demo){try{const parsed=new URL(/^https?:\/\//i.test(url)?url:`https://${url}`);if(!['https:','http:'].includes(parsed.protocol)||!parsed.hostname.includes('.'))throw Error();setUrl(parsed.href)}catch{setError('올바른 웹사이트 주소를 입력해주세요. 예: https://example.com');return}}else setUrl('https://www.example.com');setError('');setProgress(0);setFilter('all');setExpanded(false);setScreen('scanning');window.scrollTo(0,0)}
- const count=demoResults.filter(r=>r.status==='pass').length;const percent=(count/demoResults.length*100).toFixed(1);
- const all=criteria.map((name,i)=>({name,id:i+1,failed:demoResults.some(r=>r.criterionId===i+1&&r.status==='fail')}));const failed=all.filter(c=>c.failed).length;
- const filtered=all.filter(c=>filter==='all'||(filter==='fail'?c.failed:!c.failed));
- function mark(id:number,page:string){const fail=demoResults.some(r=>r.criterionId===id&&r.pageId===page&&r.status==='fail');return <span className={`status ${fail?'fail':'pass'}`} aria-label={fail?'위반':'준수'}>{fail?<X size={18}/>:<span className="status-circle"/>}</span>}
- return <><a className="skip-link" href="#main">본문 바로가기</a><header><a className="brand" href="#" aria-label="행복ICT 홈"><span className="brand-symbol"><Sparkles/><ArrowUpRight/></span><span>행복ICT</span></a><button className="login" onClick={()=>{setDetail(null);dialog.current?.showModal()}}>로그인</button></header><main id="main" className={screen==='results'?'results-main':'landing-main'}>
- {screen!=='results'?<div className="hero" key="home"><section className="hero-copy entrance"><span className="eyebrow"><span/>모두를 위한 더 나은 웹</span><h1>웹접근성<br/>자동 점검 솔루션<span className="title-dot">.</span></h1><p className="intro">URL을 입력하면 웹사이트를 자동으로 분석하여<br className="desktop-break"/>33개 웹접근성 지침의 준수 여부를 빠르고 간편하게 점검합니다.</p><div className="features">{[{icon:CircleCheck,title:'33개 지침 자동 점검',desc:<>웹접근성 기준에 따른<br/>체계적인 항목별 점검</>},{icon:Zap,title:'빠르고 정확한 분석',desc:<>복잡한 과정 없이<br/>간편하게 시작하는 점검</>},{icon:BarChart3,title:'이해하기 쉬운 보고서',desc:<>직관적인 요약과 상세 결과로<br/>누구나 쉽게 확인</>}].map(({icon:Icon,title,desc})=><div className="feature" key={title}><span className="feature-icon"><Icon/></span><div><strong>{title}</strong><p>{desc}</p></div></div>)}</div></section><section className="checker-scene entrance"><Decorations/><div className="browser-card"><div className="browser-bar"><i/><i/><i/><span>ACCESSIBILITY CHECK</span><ShieldCheck size={15}/></div><div className="checker-body">{screen==='scanning'?<div className="scan-view"><div className="scanner"><Globe2 size={54}/><span className="scan-line"/></div><span className="eyebrow">샘플 검사 체험</span><h2>더 나은 웹을 위해<br/>꼼꼼하게 살펴보고 있어요</h2><p>{progress<30?'페이지 구조를 확인하고 있습니다.':progress<70?'33개 접근성 항목을 확인하고 있습니다.':'점검 결과를 정리하고 있습니다.'}</p><div className="progress-track" role="progressbar" aria-label="샘플 점검 진행률" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}><span style={{width:`${progress}%`}}/></div><div className="progress-label"><span><LoaderCircle className="spin" size={14}/>샘플 데이터 분석 중</span><strong>{progress}%</strong></div><button className="text-button" onClick={()=>setScreen('home')}>취소</button></div>:<><div className="globe-icon"><Globe2 size={28}/><span/></div><h2>웹사이트 주소를 입력하고<br/>접근성을 점검해보세요!</h2><p>URL을 입력하면 33개 웹접근성 지침을<br/>자동으로 분석합니다.</p><form onSubmit={start} noValidate><label className={`url-field ${error?'invalid':''}`}><Link size={20}/><input aria-label="분석할 웹사이트 주소" aria-describedby={error?'url-error':undefined} aria-invalid={!!error} value={url} onChange={e=>{setUrl(e.target.value);setError('')}} placeholder="분석할 웹사이트 주소를 입력하세요" autoComplete="url"/></label>{error&&<p className="field-error" id="url-error" role="alert">{error}</p>}<button className="primary" type="submit"><ScanLine size={18}/>검사 시작<MoveRight size={19}/></button></form><button className="sample-link" onClick={()=>start(undefined,true)}>샘플 결과 먼저 살펴보기<ArrowUpRight size={14}/></button><div className="demo-note"><span/>현재는 샘플 데이터로 작동하는 체험 화면입니다.</div></>}</div></div></section></div>:<div className="results-wrap" key="results"><section className="results-hero entrance"><Decorations/><span className="eyebrow"><Check size={13}/>분석 완료 · 샘플 보고서</span><h1 ref={heading} tabIndex={-1}>점검이 완료되었습니다!</h1><p>입력하신 웹사이트에 대한 33개 웹접근성 지침 점검 결과입니다.<br/>점검 결과를 확인하고, 더 나은 웹 환경을 만들어보세요.</p><form className="retry-form" onSubmit={start}><label className="url-field"><Link size={17}/><input aria-label="다시 점검할 웹사이트 주소" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://www.example.com"/></label><button className="primary">다시 점검하기</button></form>{error&&<p className="field-error" role="alert">{error}</p>}</section>
- <section className="panel summary entrance"><div><SectionTitle title="점검 결과 요약" subtitle="웹접근성 33개 지침에 대한 점검 결과입니다."/><span className="sample-badge">샘플 데이터</span></div><div className="donut" role="img" aria-label={`전체 준수율 ${percent}퍼센트`}><svg viewBox="0 0 240 240"><circle className="donut-base" cx="120" cy="120" r="97"/><circle className="donut-value" cx="120" cy="120" r="97" pathLength="100" strokeDasharray={`${percent} 100`}/></svg><div><strong>{percent}<small>%</small></strong><span>전체 준수율</span></div></div><div className="legend"><p><span><i className="green"/>준수(O)</span><strong>{count}건</strong></p><p><span><i className="red"/>위반(X)</span><strong>{demoResults.length-count}건</strong></p><p><span><i className="gray"/>해당 없음(N/A)</span><strong>0건</strong></p><div className="legend-total"><span>총 점검 항목</span><strong>{demoResults.length}개</strong></div><small>33개 기준 × 2개 페이지</small></div></section>
- <section className="panel entrance"><div className="section-header"><SectionTitle title="항목별 준수율" subtitle="항목별로 각 페이지의 준수 여부를 확인하세요."/><div className="filters" aria-label="항목 필터">{[['all','전체',criteria.length],['pass','준수',criteria.length-failed],['fail','위반',failed]].map(([value,label,n])=><button key={value} aria-pressed={filter===value} className={filter===value?'active':''} onClick={()=>setFilter(String(value))}>{label}({n})</button>)}</div></div><div className="table-scroll" tabIndex={0} role="region" aria-label="항목별 준수율 표"><table><thead><tr><th>No.</th><th>항목</th>{pages.map(p=><th key={p.id}>{p.name}</th>)}<th>준수 페이지</th><th>항목별 준수율</th></tr></thead><tbody>{(expanded?filtered:filtered.slice(0,10)).map(c=><tr key={c.id} className={c.failed?'failed-row':''}><td><span className="number">{c.id}</span></td><th scope="row">{c.name}</th>{pages.map(p=><td key={p.id}>{mark(c.id,p.id)}</td>)}<td>{c.failed?'1':'2'}/2</td><td className={c.failed?'red-text':''}>{c.failed?'50.0':'100.0'}%</td></tr>)}</tbody></table></div>{filtered.length>10&&<button className="expand" aria-expanded={expanded} onClick={()=>setExpanded(!expanded)}>{expanded?'접기':`전체 ${filtered.length}개 항목 보기`}<ChevronDown size={17} className={expanded?'rotated':''}/></button>}{filter==='fail'&&<p className="table-note">위반이 포함된 {failed}개 기준을 표시하고 있습니다.</p>}</section>
- <section className="panel entrance"><SectionTitle title="종합 점수 요약표" subtitle="페이지별, 항목별 준수율을 한눈에 확인할 수 있습니다."/><div className="table-scroll matrix-scroll" tabIndex={0} role="region" aria-label="33개 항목 종합 점수 표"><table className="matrix"><thead><tr><th>페이지</th>{criteria.map((c,i)=><th key={c} title={c}>{i+1}<span className="sr-only"> {c}</span></th>)}</tr></thead><tbody>{pages.map(p=><tr key={p.id}><th scope="row">홈 &gt; {p.name}</th>{criteria.map((_,i)=><td key={i}>{mark(i+1,p.id)}</td>)}</tr>)}<tr className="totals"><th scope="row">항목별 결과(%)</th>{all.map(c=><td key={c.id} className={c.failed?'red-text':''}>{c.failed?'50.0':'100.0'}%</td>)}</tr></tbody></table></div><p className="table-note">좌우로 스크롤하여 33개 항목을 모두 확인하세요.<MoveRight size={14}/></p></section>
- <section className="panel details entrance"><SectionTitle title="심사 결과 상세" subtitle="항목별 상세 결과와 개선 방법을 확인하세요."/>{issues.map(issue=><article className="issue" key={issue.id}><div><h3><span className="number">{issue.id}</span>{issue.title}<span className="fail-badge">위반</span></h3><p>{issue.description}</p><strong className="location-label"><MousePointer2 size={13}/>점검 위치</strong><div className="location">{issue.location}<button onClick={()=>{setDetail(issue.id);dialog.current?.showModal()}}>자세히 보기<ArrowUpRight size={12}/></button></div></div><aside><strong>이렇게 개선하세요!</strong><p>{issue.advice}</p></aside></article>)}</section><div className="results-bottom"><ShieldCheck size={16}/>이 보고서는 화면 확인용 샘플이며 실제 웹사이트 검사 결과가 아닙니다.</div></div>}
- </main><footer>Web Accessibility Auto Checker <span>v1.0</span><span className="footer-dot">·</span>행복ICT</footer><dialog ref={dialog} className="info-dialog" aria-labelledby="dialog-title"><button className="dialog-close" aria-label="닫기" onClick={()=>dialog.current?.close()}><X/></button>{detail?<><span className="eyebrow">항목 {detail} · 샘플 점검 위치</span><h2 id="dialog-title">{issues.find(i=>i.id===detail)?.title}</h2><p>{issues.find(i=>i.id===detail)?.description}</p><code>{issues.find(i=>i.id===detail)?.selector}</code><p>{issues.find(i=>i.id===detail)?.advice}</p></>:<><ShieldCheck className="dialog-icon" size={36}/><h2 id="dialog-title">로그인 기능은 준비 중입니다</h2><p>지금은 로그인 없이 화면과 샘플 점검 결과를<br/>자유롭게 살펴보실 수 있어요.</p></>}<button className="primary" onClick={()=>dialog.current?.close()}>확인</button></dialog></>;
+function Decorations() {
+    return <div className="decorations" aria-hidden="true">{[Image, Type, Eye, ShieldCheck].map((Icon, i) => <div
+        className={`floating-icon float-${i}`} key={i}><Icon/></div>)}{Array.from({length: 7}, (_, i) => <span
+        className={`star star-${i}`} key={i}>{i % 3 === 0 ? '✦' : '+'}</span>)}</div>
 }
+
+function App() {
+    const [screen, setScreen] = useState<'home' | 'scanning' | 'results'>('home');
+    const [url, setUrl] = useState('');
+    const [error, setError] = useState('');
+    const [allPages, setAllPages] = useState(true);
+    const maxPages = allPages ? null : 1;
+    const maxDepth = allPages ? null : 0;
+    const [report, setReport] = useState<Report | null>(null);
+    const latestReport = useRef<Report | null>(null);
+    const [progress, setProgress] = useState<Progress>({type: 'progress'});
+    const [scanned, setScanned] = useState<string[]>([]);
+    const request = useRef<AbortController | null>(null);
+    const dialog = useRef<HTMLDialogElement>(null);
+    const main = useRef<HTMLElement>(null);
+    useEffect(() => {
+        const onHash = () => {
+            if (location.hash === '#main') return;
+            if (request.current) return;
+            setScreen(location.hash === '#results' && latestReport.current ? 'results' : 'home');
+        };
+        window.addEventListener('hashchange', onHash);
+        return () => window.removeEventListener('hashchange', onHash)
+    }, []);
+    useEffect(() => () => request.current?.abort(), []);
+    useEffect(() => {
+        if (screen === 'results') {
+            window.scrollTo(0, 0);
+            main.current?.focus({preventScroll: true})
+        }
+    }, [screen]);
+
+    async function start(e?: FormEvent) {
+        e?.preventDefault();
+        if (request.current) return;
+        let normalized;
+        try {
+            const parsed = new URL(/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
+            if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) throw Error();
+            normalized = parsed.href;
+        } catch {
+            setError('올바른 웹사이트 주소를 입력해주세요. 예: https://example.com');
+            return;
+        }
+        const controller = new AbortController();
+        request.current = controller;
+        setUrl(normalized);
+        setError('');
+        setProgress({type: 'progress', message: '검사 서버에 연결하고 있습니다.', completed: 0, limit: maxPages});
+        setScanned([]);
+        setScreen('scanning');
+        window.scrollTo(0, 0);
+        try {
+            const result = await scanSite(normalized, maxPages, maxDepth, controller.signal, event => {
+                if (request.current !== controller) return;
+                if (event.type === 'page' && event.page) {
+                    setScanned(previous => [...previous.slice(-2), event.page!.name]);
+                    setProgress(previous => ({...previous, completed: event.completed, message: '페이지 검사가 완료되었습니다.'}));
+                } else if (event.type === 'progress') setProgress(event);
+            });
+            if (controller.signal.aborted || request.current !== controller) return;
+            showReport(result);
+        } catch (err) {
+            if (!controller.signal.aborted) {
+                setError(err instanceof Error ? err.message : '검사를 완료하지 못했습니다.');
+                setScreen('home');
+                history.replaceState(null, '', location.pathname);
+            }
+        } finally {
+            if (request.current === controller) request.current = null;
+        }
+    }
+
+    function cancel() {
+        request.current?.abort();
+        request.current = null;
+        setScreen('home');
+        setError('검사를 취소했습니다.');
+        history.replaceState(null, '', location.pathname);
+    }
+
+    function showReport(result: Report) {
+        // hashchange can run before React commits the new report state.
+        latestReport.current = result;
+        setReport(result);
+        setScreen('results');
+        location.hash = 'results';
+    }
+
+    function sample() {
+        showReport(sampleReport());
+        setUrl('https://example.com/');
+        setError('');
+    }
+
+    return <><a className="skip-link" href="#main">본문 바로가기</a>
+        <header><a className="brand" href="#" onClick={e => {
+            if (screen === 'scanning') {
+                e.preventDefault();
+                cancel();
+            }
+        }} aria-label="행복ICT 홈"><img className="brand-logo" src="/happy-ict-logo.png" alt="행복ICT" width="116" height="43"/></a>
+            <button className="login" onClick={() => dialog.current?.showModal()}>로그인</button>
+        </header>
+        <main ref={main} tabIndex={-1} id="main" className={screen === 'results' ? 'results-main' : 'landing-main'}>
+            {screen === 'results' && report ?
+                <ReportView key={report.finishedAt} report={report} url={url} setUrl={setUrl} onStart={start}
+                            error={error}/> : <div className="hero">
+                    <section className="hero-copy entrance"><span className="eyebrow"><span/>모두를 위한 더 나은 웹</span>
+                        <h1>웹접근성<br/>자동 점검 솔루션<span className="title-dot">.</span></h1><p className="intro">URL 하나로
+                            서브페이지까지 자동으로 수집하고,<br className="desktop-break"/>33개 웹접근성 항목의 검사 결과와 근거를 확인하세요.</p>
+                        <div className="features">{[{
+                            icon: CircleCheck,
+                            title: '33개 항목 점검',
+                            desc: <>자동 검사와 확인 단서로<br/>놓치기 쉬운 부분까지</>
+                        }, {
+                            icon: Zap,
+                            title: '서브페이지 자동 수집',
+                            desc: <>같은 사이트의 링크를 따라<br/>한 번에 여러 페이지 점검</>
+                        }, {
+                            icon: BarChart3,
+                            title: '이해하기 쉬운 보고서',
+                            desc: <>직관적인 요약과 상세 결과로<br/>
+                                누구나 쉽게 확인</>
+                        }].map(({icon: Icon, title, desc}) => <div className="feature" key={title}><span
+                            className="feature-icon"><Icon/></span>
+                            <div><strong>{title}</strong><p>{desc}</p></div>
+                        </div>)}</div>
+                    </section>
+                    <section className="checker-scene entrance"><Decorations/>
+                        <div className="browser-card">
+                            <div className="browser-bar"><i/><i/><i/><span>ACCESSIBILITY CHECK</span><ShieldCheck
+                                size={15}/></div>
+                            <div className="checker-body">{screen === 'scanning' ? <div className="scan-view">
+                                <div className="scanner"><Globe2 size={54}/><span className="scan-line"/></div>
+                                <span className="eyebrow">실제 웹사이트 검사 중</span><h2>페이지 하나하나<br/>꼼꼼하게 살펴보고 있어요</h2><p
+                                aria-live="polite">{progress.message}</p>
+                                <div className="progress-track indeterminate" aria-label="웹사이트 검사 진행 중"
+                                     role="progressbar"><span/></div>
+                                <div className="progress-label"><span><LoaderCircle className="spin"
+                                                                                    size={14}/>{progress.completed || 0}페이지 검사 완료</span><strong>{maxPages === null ? '페이지 제한 없음' : `최대 ${maxPages}페이지`}</strong>
+                                </div>
+                                {progress.currentUrl && <p className="current-url">{progress.currentUrl}</p>}
+                                <ul className="scanned-pages">{scanned.slice(-3).map((name, i) => <li key={i}>
+                                    <CircleCheck size={13}/>{name}</li>)}</ul>
+                                <button className="text-button" onClick={cancel}>검사 취소</button>
+                            </div> : <>
+                                <div className="globe-icon"><Globe2 size={28}/><span/></div>
+                                <h2>웹사이트 주소를 입력하고<br/>접근성을 점검해보세요!</h2><p>서브페이지를 자동으로 수집하여<br/>33개 항목을 네 단계로 분류합니다.</p>
+                                <form onSubmit={start} noValidate><label
+                                    className={`url-field ${error ? 'invalid' : ''}`}><Link size={20}/><input
+                                    aria-label="분석할 웹사이트 주소" aria-describedby={error ? 'url-error' : undefined}
+                                    aria-invalid={!!error} value={url} onChange={e => {
+                                    setUrl(e.target.value);
+                                    setError('')
+                                }} placeholder="https://example.com" autoComplete="url"/></label>
+                                    <div className="crawl-options">
+                                        <label><input type="checkbox" checked={allPages}
+                                            onChange={e => setAllPages(e.target.checked)}
+                                            aria-describedby="crawl-scope-help"/>전체 페이지 검수</label>
+                                        <p id="crawl-scope-help">{allPages ? '같은 사이트의 연결된 페이지를 모두 검수합니다.' : '입력한 페이지만 검수합니다.'}</p>
+                                    </div>
+                                    {error && <p className="field-error" id="url-error" role="alert">{error}</p>}
+                                    <button className="primary" type="submit"><ScanLine size={18}/>검사 시작<MoveRight
+                                        size={19}/></button>
+                                </form>
+                                <button className="sample-link" onClick={sample}>샘플 결과 먼저 살펴보기<ArrowUpRight size={14}/>
+                                </button>
+                                <div className="demo-note">자동 확정이 어려운 항목은 수동 확인 사유를 표시합니다.</div>
+                            </>}</div>
+                        </div>
+                    </section>
+                </div>}
+        </main>
+        <footer>Web Accessibility Auto Checker <span>v1.0</span><span className="footer-dot">·</span>행복ICT</footer>
+        <dialog ref={dialog} className="info-dialog" aria-labelledby="login-title">
+            <button className="dialog-close" aria-label="닫기" onClick={() => dialog.current?.close()}><X/></button>
+            <ShieldCheck className="dialog-icon" size={36}/><h2 id="login-title">로그인 기능은 준비 중입니다</h2><p>로그인 없이 공개 웹사이트를
+            검사할 수 있습니다.</p>
+            <button className="primary" onClick={() => dialog.current?.close()}>확인</button>
+        </dialog>
+    </>;
+}
+
 createRoot(document.getElementById('app')!).render(<StrictMode><App/></StrictMode>);
